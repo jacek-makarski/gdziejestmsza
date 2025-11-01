@@ -14,10 +14,53 @@
     h1 {
       color: #0078d7;
     }
+    #visit-count {
+      font-weight: bold;
+      color: #333;
+    }
   </style>
 </head>
 <body>
   <h1>Witaj na mojej stronie!</h1>
   <p>To moja pierwsza strona w internecie 🚀</p>
+
+  <p>Unikalnych odwiedzin: <span id="visit-count">ładowanie...</span></p>
+
+  <script>
+    // 👇 Ustaw własny identyfikator strony (unikalny dla Twojej witryny)
+    const NAMESPACE = 'mojastrona';  // np. Twoja nazwa lub login z GitLaba
+    const KEY = 'index';             // nazwa konkretnej strony
+
+    const STORAGE_KEY = `${NAMESPACE}_${KEY}_visited`;
+    const visitElement = document.getElementById('visit-count');
+
+    // Sprawdź, czy użytkownik już odwiedził
+    const alreadyVisited = localStorage.getItem(STORAGE_KEY);
+
+    if (!alreadyVisited) {
+      // Pierwsza wizyta → zwiększ licznik
+      fetch(`https://api.countapi.xyz/hit/${encodeURIComponent(NAMESPACE)}/${encodeURIComponent(KEY)}`)
+        .then(res => res.json())
+        .then(data => {
+          visitElement.textContent = data.value;
+          localStorage.setItem(STORAGE_KEY, 'true'); // zapisz w przeglądarce
+        })
+        .catch(err => {
+          console.error('Błąd licznika:', err);
+          visitElement.textContent = '—';
+        });
+    } else {
+      // Kolejne wizyty → tylko pobierz aktualny stan
+      fetch(`https://api.countapi.xyz/get/${encodeURIComponent(NAMESPACE)}/${encodeURIComponent(KEY)}`)
+        .then(res => res.json())
+        .then(data => {
+          visitElement.textContent = data.value;
+        })
+        .catch(err => {
+          console.error('Błąd licznika:', err);
+          visitElement.textContent = '—';
+        });
+    }
+  </script>
 </body>
 </html>
