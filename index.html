@@ -5,46 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Msze</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
-      text-align: center;
-      margin-top: 50px;
-    }
-    h1 {
-      color: #0078d7;
-    }
-    .msze {
-      margin-top: 40px;
-      padding: 20px;
-      background-color: #fff;
-      display: inline-block;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-    }
-    .msze h2 {
-      margin-bottom: 10px;
-      color: #333;
-    }
-    .msze ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    .msze ul li {
-      margin: 5px 0;
-      color: #555;
-    }
-    #visit-count {
-      font-weight: bold;
-      color: #333;
-    }
+    body { font-family: Arial, sans-serif; background: #f9f9f9; text-align: center; margin-top: 50px; }
+    h1 { color: #0078d7; }
+    .msze { margin: 40px auto; padding: 20px; background: #fff; display: inline-block; border: 1px solid #ccc; border-radius: 8px; }
+    .msze h2 { margin-bottom: 10px; color: #333; }
+    .msze ul { list-style: none; padding: 0; margin: 0; }
+    .msze ul li { margin: 5px 0; color: #555; }
+    #visit-count { font-weight: bold; color: #333; }
   </style>
 </head>
 <body>
   <h1>Szukamy Mszy!</h1>
-  <p>wyszukiwarka Mszy 🚀</p>
-  <p>Unikalnych odwiedzin: <span id="visit-count">ładowanie...</span></p>
+  <p>wyszukiwarka Mszy</p>
+  <p>Odwiedzin: <span id="visit-count">
+    <?php echo $count; ?>
+  </span></p>
+
   <div class="msze">
     <h2>Msze niedzielne parafii Wszystkich Świętych w Zakliczynie</h2>
     <ul>
@@ -55,40 +31,5 @@
       <li>17:00</li>
     </ul>
   </div>
-  <script>
-    const NAMESPACE = 'mojastrona';
-    const KEY = 'index';
-    const STORAGE_KEY = `${NAMESPACE}_${KEY}_visited`;
-    const visitElement = document.getElementById('visit-count');
-
-    function updateCount(value) {
-      visitElement.textContent = value;
-    }
-
-    function handleError() {
-      visitElement.textContent = 'Błąd ładowania';
-    }
-
-    const alreadyVisited = localStorage.getItem(STORAGE_KEY);
-
-    const endpoint = alreadyVisited ? 'get' : 'hit';
-    fetch(`https://api.countapi.xyz/${endpoint}/${encodeURIComponent(NAMESPACE)}/${encodeURIComponent(KEY)}`)
-      .then(res => {
-        if (!res.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return res.json();
-      })
-      .then(data => {
-        updateCount(data.value);
-        if (!alreadyVisited) {
-          localStorage.setItem(STORAGE_KEY, 'true');
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching visit count:', error);
-        handleError();
-      });
-  </script>
 </body>
 </html>

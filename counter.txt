@@ -1,0 +1,18 @@
+<?php
+// Ścieżka do pliku z licznikiem
+$counter_file = 'counter.txt';
+
+// Sprawdź, czy plik istnieje – jeśli nie, utwórz z wartością 0
+if (!file_exists($counter_file)) {
+    file_put_contents($counter_file, '0');
+}
+
+// Wczytaj aktualną wartość
+$count = (int)file_get_contents($counter_file);
+
+// Zwiększ licznik o 1
+$count++;
+
+// Zapisz nową wartość
+file_put_contents($counter_file, $count);
+?>
