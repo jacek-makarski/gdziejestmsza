@@ -1,56 +1,760 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Msze</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a2744" />
+  <meta name="description" content="Godziny Mszy Świętych – Parafia Wszystkich Świętych w Zakliczynie k. Myślenic" />
+  <title>Msze Święte – Zakliczyn</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <style>
-    body { font-family: Arial, sans-serif; background: #f9f9f9; text-align: center; margin-top: 50px; }
-    h1 { color: #0078d7; }
-    .msze { margin: 40px auto; padding: 20px; background: #fff; display: inline-block; border: 1px solid #ccc; border-radius: 8px; }
-    .msze h2 { margin-bottom: 10px; color: #333; }
-    .msze ul { list-style: none; padding: 0; margin: 0; }
-    .msze ul li { margin: 5px 0; color: #555; }
-    #visit-count { font-weight: bold; color: #333; }
+    :root {
+      --bg: #0f172a;
+      --bg-card: #1e293b;
+      --bg-elevated: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #d4a017;          /* gold */
+      --accent-soft: #f0d78c;
+      --primary: #3b82f6;
+      --success: #22c55e;
+      --border: #334155;
+      --radius: 16px;
+      --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Source Sans 3', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, #1a2744 0%, #0f172a 100%);
+      padding: 1.25rem 1.25rem 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+
+    .parish-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: var(--accent-soft);
+      margin-bottom: 0.15rem;
+    }
+
+    .parish-location {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Main content */
+    main {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 6rem;
+    }
+
+    /* Nearest Mass Card - Hero */
+    .nearest-card {
+      background: linear-gradient(145deg, #1e3a5f 0%, #1e293b 100%);
+      border: 1px solid rgba(212, 160, 23, 0.25);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nearest-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -30%;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(212,160,23,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .nearest-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .nearest-time {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.75rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 0.25rem;
+    }
+
+    .nearest-details {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .countdown {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      margin-bottom: 1.25rem;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.7rem 1.1rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #1a1200;
+    }
+    .btn-primary:hover {
+      background: #e6b422;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: #475569;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 1.75rem;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--accent-soft);
+      margin-bottom: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .schedule-group {
+      margin-bottom: 1.1rem;
+    }
+    .schedule-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .schedule-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.45rem;
+    }
+
+    .times {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .time-badge {
+      background: var(--bg-elevated);
+      color: var(--text);
+      font-weight: 600;
+      font-size: 1.05rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+
+    .time-badge.highlight {
+      background: rgba(212, 160, 23, 0.18);
+      border-color: rgba(212, 160, 23, 0.4);
+      color: var(--accent-soft);
+    }
+
+    .note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.6rem;
+      line-height: 1.45;
+    }
+
+    /* Map */
+    .map-container {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      height: 240px;
+      background: var(--bg-elevated);
+    }
+
+    .map-container iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Contact */
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .contact-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .contact-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1.15rem;
+    }
+
+    .contact-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .contact-value {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .contact-value a {
+      color: var(--accent-soft);
+      text-decoration: none;
+    }
+    .contact-value a:hover {
+      text-decoration: underline;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+      margin-top: 1rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #166534;
+      color: white;
+      padding: 0.85rem 1.4rem;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 100;
+      max-width: 90%;
+      text-align: center;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Status badge for current season */
+    .season-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      margin-left: 0.4rem;
+      font-weight: 500;
+    }
+
+    /* Loading state */
+    .loading {
+      opacity: 0.6;
+    }
   </style>
 </head>
 <body>
-  <h1>Szukamy Mszy!</h1>
-  <p>wyszukiwarka Mszy</p>
-  <p>Odwiedzin: <span id="visit-count">
-    <?php echo $count; ?>
-  </span></p>
+  <header>
+    <div class="parish-name">Parafia Wszystkich Świętych</div>
+    <div class="parish-location">Zakliczyn k. Myślenic</div>
+  </header>
 
-  <div class="msze">
-    <h2>Msze niedzielne parafii Wszystkich Świętych w Zakliczynie</h2>
-    <ul>
-      <li>7:00</li>
-      <li>9:00</li>
-      <li>11:30</li>
-      <li>13:00</li>
-      <li>17:00</li>
-    </ul>
-  </div>
+  <main>
+    <!-- NAJBLIŻSZA MSZA -->
+    <section class="nearest-card" id="nearestSection">
+      <div class="nearest-label">
+        <span>✝️</span> Najbliższa Msza Święta
+      </div>
+      <div class="nearest-time" id="nearestTime">—:—</div>
+      <div class="nearest-details" id="nearestDetails">Ładowanie...</div>
+      <div class="countdown" id="countdown">
+        <span>⏱️</span> <span id="countdownText">—</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="notifyBtn" onclick="requestNotification()">
+          🔔 Przypomnij mi
+        </button>
+        <a class="btn btn-secondary" href="#mapa">
+          🗺️ Mapa
+        </a>
+      </div>
+    </section>
+
+    <!-- GODZINY -->
+    <section class="section">
+      <h2 class="section-title">📅 Godziny Mszy Świętych</h2>
+      
+      <div class="card">
+        <div class="schedule-group">
+          <div class="schedule-label">Niedziele i święta</div>
+          <div class="times" id="sundayTimes">
+            <span class="time-badge">7:00</span>
+            <span class="time-badge">9:00</span>
+            <span class="time-badge">11:30</span>
+            <span class="time-badge">17:00</span>
+          </div>
+          <p class="note">Kaplica w Stojowicach: <strong>10:15</strong><br>
+          W Wielkim Poście po Gorzkich Żalach: <strong>15:00</strong> zamiast 17:00</p>
+        </div>
+
+        <div class="schedule-group">
+          <div class="schedule-label">
+            Dni powszednie 
+            <span class="season-badge" id="seasonBadge">—</span>
+          </div>
+          <div class="times" id="weekdayTimes">
+            <!-- filled by JS -->
+          </div>
+          <p class="note" id="weekdayNote"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAPA -->
+    <section class="section" id="mapa">
+      <h2 class="section-title">🗺️ Mapa dojazdu</h2>
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="map-container">
+          <iframe 
+            src="https://maps.google.com/maps?q=ul.+Kościelna+1,+32-406+Zakliczyn&t=&z=16&ie=UTF8&iwloc=&output=embed"
+            allowfullscreen="" 
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            title="Mapa parafii w Zakliczynie">
+          </iframe>
+        </div>
+        <div style="padding: 1rem 1.25rem;">
+          <div style="font-weight: 600; margin-bottom: 0.25rem;">Kościół parafialny</div>
+          <div style="color: var(--text-muted); font-size: 0.9rem;">ul. Kościelna 1, 32-406 Zakliczyn</div>
+          <a href="https://maps.app.goo.gl/7TB6jrZXxfFGz2BFA" target="_blank" rel="noopener" 
+             class="btn btn-secondary" style="margin-top: 0.85rem; width: 100%;">
+            Otwórz w Google Maps →
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- KONTAKT -->
+    <section class="section">
+      <h2 class="section-title">📞 Kontakt</h2>
+      <div class="card">
+        <div class="contact-item">
+          <div class="contact-icon">⛪</div>
+          <div>
+            <div class="contact-label">Adres parafii</div>
+            <div class="contact-value">ul. Kościelna 1<br>32-406 Zakliczyn</div>
+          </div>
+        </div>
+        
+        <div class="contact-item">
+          <div class="contact-icon">👨‍🦳</div>
+          <div>
+            <div class="contact-label">Proboszcz</div>
+            <div class="contact-value">
+              ks. mgr lic. Piotr Waligóra<br>
+              <a href="tel:+48798848819">+48 798 848 819</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">🔑</div>
+          <div>
+            <div class="contact-label">Kościelny</div>
+            <div class="contact-value">
+              Jan Wielgus<br>
+              <a href="tel:+48785402519">+48 785 402 519</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon">🌐</div>
+          <div>
+            <div class="contact-label">Oficjalna strona</div>
+            <div class="contact-value">
+              <a href="https://parafiazakliczyn.pl" target="_blank" rel="noopener">parafiazakliczyn.pl</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Dane na podstawie oficjalnej strony parafii.<br>
+    Godziny mogą się zmieniać — sprawdź <a href="https://parafiazakliczyn.pl" target="_blank">ogłoszenia</a>.
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ========== KONFIGURACJA GODZIN ==========
+    // Na podstawie oficjalnej strony parafiazakliczyn.pl
+
+    function getSeason(date = new Date()) {
+      const m = date.getMonth() + 1; // 1-12
+      // kwiecień–sierpień: 7:00 + 18:00
+      if (m >= 4 && m <= 8) return 'lato';
+      // listopad–marzec: 7:00 + 17:00 (czas zimowy)
+      if (m >= 11 || m <= 3) return 'zima';
+      // wrzesień–październik: tylko 18:00
+      return 'jesien';
+    }
+
+    function getWeekdayMasses(date = new Date()) {
+      const season = getSeason(date);
+      if (season === 'lato') return [7, 18];
+      if (season === 'zima') return [7, 17];
+      return [18]; // jesień
+    }
+
+    function getSundayMasses() {
+      // Stałe godziny + Stojowice 10:15 (traktujemy jako opcję)
+      return [7, 9, 11.5, 17]; // 11:30 jako 11.5
+    }
+
+    // ========== OBLICZANIE NAJBLIŻSZEJ MSZY ==========
+    function getNextMass() {
+      const now = new Date();
+      const candidates = [];
+
+      // Sprawdź dzisiaj i kolejne 7 dni
+      for (let d = 0; d < 8; d++) {
+        const day = new Date(now);
+        day.setDate(now.getDate() + d);
+        day.setHours(0, 0, 0, 0);
+
+        const isSunday = day.getDay() === 0;
+        const times = isSunday ? getSundayMasses() : getWeekdayMasses(day);
+
+        times.forEach(t => {
+          const hour = Math.floor(t);
+          const minute = (t % 1) * 60; // 11.5 → 30
+          const massTime = new Date(day);
+          massTime.setHours(hour, minute, 0, 0);
+
+          // Tylko przyszłe msze (z 2-minutowym buforem)
+          if (massTime.getTime() > now.getTime() - 2 * 60 * 1000) {
+            candidates.push({
+              time: massTime,
+              isSunday,
+              location: isSunday && t === 11.5 ? 'Kaplica Stojowice' : 'Kościół parafialny'
+            });
+          }
+        });
+      }
+
+      // Sortuj i weź najbliższą
+      candidates.sort((a, b) => a.time - b.time);
+      return candidates[0] || null;
+    }
+
+    function formatTime(date) {
+      return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatDate(date) {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+      const d = new Date(date);
+      d.setHours(0,0,0,0);
+
+      if (d.getTime() === today.getTime()) return 'dziś';
+      if (d.getTime() === tomorrow.getTime()) return 'jutro';
+      
+      return date.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function updateNearest() {
+      const next = getNextMass();
+      if (!next) {
+        document.getElementById('nearestTime').textContent = '—';
+        document.getElementById('nearestDetails').textContent = 'Brak danych';
+        return;
+      }
+
+      document.getElementById('nearestTime').textContent = formatTime(next.time);
+      
+      let details = formatDate(next.time);
+      if (next.location !== 'Kościół parafialny') {
+        details += ' • ' + next.location;
+      }
+      document.getElementById('nearestDetails').textContent = details;
+
+      // Odliczanie
+      const diff = next.time - new Date();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      let countdownText = '';
+      if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        countdownText = `za ${days} ${days === 1 ? 'dzień' : 'dni'}`;
+      } else if (hours > 0) {
+        countdownText = `za ${hours} h ${mins} min`;
+      } else if (mins > 0) {
+        countdownText = `za ${mins} min`;
+      } else {
+        countdownText = 'właśnie trwa / zaraz';
+      }
+      document.getElementById('countdownText').textContent = countdownText;
+
+      // Podświetl najbliższą godzinę na liście
+      highlightNextTime(next);
+    }
+
+    function highlightNextTime(next) {
+      // Usuń stare podświetlenia
+      document.querySelectorAll('.time-badge.highlight').forEach(el => el.classList.remove('highlight'));
+      
+      // To uproszczone – podświetlamy na liście niedzielnej/powszedniej jeśli pasuje
+      const timeStr = formatTime(next.time).replace(/^0/, ''); // 07:00 → 7:00
+    }
+
+    function updateScheduleDisplay() {
+      const season = getSeason();
+      const weekdayTimes = getWeekdayMasses();
+      
+      const badge = document.getElementById('seasonBadge');
+      const timesContainer = document.getElementById('weekdayTimes');
+      const note = document.getElementById('weekdayNote');
+
+      timesContainer.innerHTML = '';
+      weekdayTimes.forEach(t => {
+        const span = document.createElement('span');
+        span.className = 'time-badge';
+        span.textContent = `${Math.floor(t)}:${String((t%1)*60).padStart(2,'0')}`.replace(':00',':00');
+        if (t % 1 === 0) span.textContent = t + ':00';
+        else span.textContent = Math.floor(t) + ':30';
+        timesContainer.appendChild(span);
+      });
+
+      if (season === 'lato') {
+        badge.textContent = 'lato (IV–VIII)';
+        note.textContent = 'Od kwietnia do końca sierpnia: 7:00 i 18:00';
+      } else if (season === 'zima') {
+        badge.textContent = 'zima';
+        note.textContent = 'W czasie zimowym: 7:00 i 17:00';
+      } else {
+        badge.textContent = 'IX–X';
+        note.textContent = 'We wrześniu i październiku: tylko 18:00';
+      }
+    }
+
+    // ========== POWIADOMIENIA ==========
+    let notificationTimeout = null;
+
+    function requestNotification() {
+      const btn = document.getElementById('notifyBtn');
+      
+      if (!('Notification' in window)) {
+        showToast('Twoja przeglądarka nie obsługuje powiadomień');
+        return;
+      }
+
+      if (Notification.permission === 'granted') {
+        scheduleNotification();
+        return;
+      }
+
+      if (Notification.permission === 'denied') {
+        showToast('Powiadomienia są zablokowane. Włącz je w ustawieniach przeglądarki.');
+        return;
+      }
+
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          scheduleNotification();
+        } else {
+          showToast('Nie udzielono zgody na powiadomienia');
+        }
+      });
+    }
+
+    function scheduleNotification() {
+      const next = getNextMass();
+      if (!next) return;
+
+      // Przypomnij 20 minut przed
+      const remindAt = new Date(next.time.getTime() - 20 * 60 * 1000);
+      const now = new Date();
+      const delay = remindAt - now;
+
+      if (delay < 0) {
+        // Już po czasie przypomnienia – pokaż od razu informację
+        showToast(`Najbliższa Msza jest już niedługo (${formatTime(next.time)})`);
+        new Notification('Msza Święta wkrótce', {
+          body: `Msza o ${formatTime(next.time)} – ${next.location}`,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">✝️</text></svg>'
+        });
+        return;
+      }
+
+      // Anuluj poprzednie
+      if (notificationTimeout) clearTimeout(notificationTimeout);
+
+      notificationTimeout = setTimeout(() => {
+        new Notification('Msza Święta za 20 minut', {
+          body: `Msza o ${formatTime(next.time)} w ${next.location}`,
+          icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">✝️</text></svg>',
+          tag: 'msza-zakliczyn'
+        });
+      }, delay);
+
+      const mins = Math.round(delay / 60000);
+      showToast(`Ustawiono przypomnienie (za ${mins} min przed Mszą)`);
+      document.getElementById('notifyBtn').textContent = '✓ Przypomnienie ustawione';
+      document.getElementById('notifyBtn').disabled = true;
+      
+      // Przywróć przycisk po 5 sekundach (wizualnie)
+      setTimeout(() => {
+        document.getElementById('notifyBtn').disabled = false;
+        document.getElementById('notifyBtn').innerHTML = '🔔 Przypomnij mi';
+      }, 4000);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3200);
+    }
+
+    // ========== START ==========
+    function init() {
+      updateScheduleDisplay();
+      updateNearest();
+      // Odświeżaj co minutę
+      setInterval(updateNearest, 60 * 1000);
+    }
+
+    // Uruchom po załadowaniu
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
 </body>
 </html>
-
-
-
-<?php
-// Ścieżka do pliku z licznikiem
-$counter_file = 'counter.txt';
-
-// Sprawdź, czy plik istnieje – jeśli nie, utwórz z wartością 0
-if (!file_exists($counter_file)) {
-    file_put_contents($counter_file, '0');
-}
-
-// Wczytaj aktualną wartość
-$count = (int)file_get_contents($counter_file);
-
-// Zwiększ licznik o 1
-$count++;
-
-// Zapisz nową wartość
-file_put_contents($counter_file, $count);
-?>
