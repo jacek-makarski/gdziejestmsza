@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#1a2744" />
-  <meta name="description" content="Msze Święte – Dekanat Dobczyce + Zakliczyn" />
+  <meta name="description" content="Msze Święte – Archidiecezja Krakowska" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Msze Święte" />
@@ -12,7 +12,7 @@
   <meta name="application-name" content="Msze Święte" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>Msze Święte – Dekanat Dobczyce</title>
+  <title>Msze Święte – Dobczyce i Myślenice</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -248,7 +248,7 @@
   <div id="selectionScreen">
     <div class="sel-header">
       <h1>Msze Święte</h1>
-      <p>Dekanat Dobczyce + Zakliczyn</p>
+      <p>Archidiecezja Krakowska</p>
     </div>
     <div id="mapContainer"></div>
     <div class="nearest-three" id="nearestThree" style="display:none;">
@@ -266,7 +266,9 @@
         <button onclick="applyTimeFilter()">Szukaj</button>
       </div>
       <div class="search-hint">Wpisz godzinę – pokażę kościoły z Mszą o tej porze</div>
+      <div class="search-hint" id="listStats" style="margin-top:0.35rem;color:var(--accent-soft);"></div>
     </div>
+
     <div id="filterInfo" class="filter-active" style="display:none;">
       <span id="filterText"></span>
       <button onclick="clearTimeFilter()">Wyczyść</button>
@@ -366,6 +368,8 @@
     let currentChurch = null;
     let userLat = null, userLng = null;
     let timeFilter = null;
+    const RADIUS_KM = 20;
+    let radiusKm = RADIUS_KM;
     let notificationTimeout = null;
     let map = null;
     let markers = {};
@@ -583,7 +587,7 @@
           userLat = pos.coords.latitude;
           userLng = pos.coords.longitude;
           status.className = 'location-status success';
-          text.textContent = 'Lokalizacja ustalona. Poniżej 3 najbliższe kościoły.';
+          text.textContent = 'Lokalizacja OK – pokazuję parafie w promieniu ' + radiusKm + ' km.';
           renderNearestThree();
           const top = getTopNearest(1);
           renderList(top[0] ? top[0].id : null);
@@ -608,36 +612,73 @@
         list.innerHTML = '<div class="no-results">Brak danych</div>';
         return;
       }
-      if (timeFilter != null) {
-        ids = ids.filter(id => churchHasTime(CHURCHES[id], timeFilter, isSunday));
-        if (ids.length === 0) { noRes.style.display = 'block'; return; }
-      }
-      ids.sort((a, b) => {
-        if (a === recommendedId) return -1;
-        if (b === recommendedId) return 1;
-        if (userLat != null) {
-          return haversine(userLat, userLng, CHURCHES[a].lat, CHURCHES[a].lng) -
-                 haversine(userLat, userLng, CHURCHES[b].lat, CHURCHES[b].lng);
-        }
-        return (CHURCHES[a].short || '').localeCompare(CHURCHES[b].short || '');
-      });
-      ids.forEach(id => {
+
+      // Odległość
+      const withDist = ids.map(id => {
         const c = CHURCHES[id];
-        let dist = '';
-        if (userLat != null) dist = '~' + haversine(userLat, userLng, c.lat, c.lng).toFixed(1) + ' km';
+        let dist = null;
+        if (userLat != null && c.lat != null && c.lng != null) {
+          dist = haversine(userLat, userLng, c.lat, c.lng);
+        }
+        return { id, dist };
+      });
+
+      // Tylko w promieniu (gdy mamy lokalizację)
+      let filtered = withDist;
+      if (userLat != null) {
+        filtered = withDist.filter(x => x.dist != null && x.dist <= radiusKm);
+      }
+
+      // Filtr godziny
+      if (timeFilter != null) {
+        filtered = filtered.filter(x => churchHasTime(CHURCHES[x.id], timeFilter, isSunday));
+      }
+
+      // Sort: najbliższe / polecane
+      filtered.sort((a, b) => {
+        if (a.id === recommendedId) return -1;
+        if (b.id === recommendedId) return 1;
+        if (a.dist != null && b.dist != null) return a.dist - b.dist;
+        return (CHURCHES[a.id].short || '').localeCompare(CHURCHES[b.id].short || '');
+      });
+
+      const stats = document.getElementById('listStats');
+      if (stats) {
+        if (userLat != null) {
+          stats.textContent = 'W promieniu ' + radiusKm + ' km: ' + filtered.length + ' parafii'
+            + (timeFilter != null ? ' (po filtrze godzin)' : '');
+        } else {
+          stats.textContent = 'Włącz lokalizację, żeby zobaczyć parafie w okolicy';
+        }
+      }
+
+      if (filtered.length === 0) {
+        noRes.style.display = 'block';
+        noRes.textContent = userLat == null
+          ? 'Włącz lokalizację, aby zobaczyć najbliższe kościoły'
+          : (timeFilter != null
+            ? 'Brak kościołów z Mszą o tej godzinie w promieniu ' + radiusKm + ' km'
+            : 'Brak parafii w promieniu ' + radiusKm + ' km');
+        return;
+      }
+
+      filtered.forEach(({ id, dist }) => {
+        const c = CHURCHES[id];
+        const distStr = dist != null ? '~' + dist.toFixed(1) + ' km' : '';
         const times = isSunday ? getSundayTimes(c) : getWeekdayTimes(c, new Date());
         const chips = times.map(t => {
           const match = timeFilter != null && Math.abs(t - timeFilter) < 0.05;
           return '<span class="time-chip' + (match ? ' match' : '') + '">' + formatTimeNum(t) + '</span>';
         }).join('');
+        const hasTimes = times && times.length > 0;
         const card = document.createElement('div');
         card.className = 'church-card' + (id === recommendedId ? ' recommended' : '');
         card.innerHTML = (id === recommendedId ? '<span class="badge">Polecany</span>' : '') +
-          '<div class="church-name">' + c.name + '</div>' +
-          '<div class="church-place">' + c.place + (c.deanery ? ' · ' + c.deanery : '') + '</div>' +
-          '<div class="church-meta"><span>📍 ' + (c.address ? c.address.split(',')[0] : '') + '</span>' +
-          (dist ? '<span>📏 ' + dist + '</span>' : '') + '</div>' +
-          '<div class="times-preview">' + (chips || '<span class="time-chip">brak danych</span>') + '</div>' +
+          '<div class="church-name">' + (c.name || c.short) + '</div>' +
+          '<div class="church-place">' + (c.place || '') + (c.deanery ? ' · ' + c.deanery : '') + '</div>' +
+          '<div class="church-meta"><span>📍 ' + (c.address ? String(c.address).split(',')[0] : (c.place || '')) + '</span>' +
+          (distStr ? '<span>📏 ' + distStr + '</span>' : '') + '</div>' +
+          '<div class="times-preview">' + (hasTimes ? chips : '<span class="time-chip">brak godzin – zgłoś</span>') + '</div>' +
           '<button class="btn-select" onclick="selectChurch(\'' + id + '\')">' +
           (id === recommendedId ? 'Potwierdź ten kościół' : 'Wybierz') + '</button>';
         list.appendChild(card);
@@ -806,7 +847,28 @@
       }
       initLocation();
       setInterval(() => { if (currentChurch) updateNearest(); }, 60000);
+      registerSW();
     }
+
+    function registerSW() {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        // check for updates when app opens
+        reg.update();
+        setInterval(() => reg.update(), 60 * 60 * 1000);
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              showToast('Dostępna aktualizacja – odświeżam…');
+              setTimeout(() => location.reload(), 1200);
+            }
+          });
+        });
+      }).catch(() => {});
+    }
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {
