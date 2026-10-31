@@ -15,134 +15,97 @@
   <title>Msze Święte – Dekanat Dobczyce</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
   <style>
     :root {
-      --bg: #0f172a;
-      --bg-card: #1e293b;
-      --bg-elevated: #334155;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent: #d4a017;
-      --accent-soft: #f0d78c;
-      --border: #334155;
-      --radius: 16px;
-      --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+      --bg: #0f172a; --bg-card: #1e293b; --bg-elevated: #334155;
+      --text: #f1f5f9; --text-muted: #94a3b8;
+      --accent: #d4a017; --accent-soft: #f0d78c; --border: #334155;
+      --radius: 16px; --shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Source Sans 3', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      min-height: 100dvh;
-      -webkit-font-smoothing: antialiased;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      min-height: 100dvh; -webkit-font-smoothing: antialiased;
     }
     #selectionScreen {
-      min-height: 100dvh;
-      display: flex;
-      flex-direction: column;
-      padding: 1.25rem 1rem 2.5rem;
-      max-width: 560px;
-      margin: 0 auto;
+      min-height: 100dvh; display: flex; flex-direction: column;
+      padding: 1.25rem 1rem 2.5rem; max-width: 560px; margin: 0 auto;
     }
     .sel-header { text-align: center; margin-bottom: 1.25rem; padding-top: 0.5rem; }
     .sel-header h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: var(--accent-soft);
-      margin-bottom: 0.25rem;
+      font-family: 'Cormorant Garamond', serif; font-size: 1.6rem;
+      font-weight: 700; color: var(--accent-soft); margin-bottom: 0.25rem;
     }
     .sel-header p { color: var(--text-muted); font-size: 0.9rem; }
     .location-status {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1rem;
-      font-size: 0.88rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1rem;
+      font-size: 0.88rem; display: flex; align-items: center; gap: 0.5rem;
     }
     .location-status.success { border-color: rgba(34,197,94,0.4); }
     .location-status.error { border-color: rgba(239,68,68,0.4); }
+    #mapContainer {
+      height: 260px; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border); margin-bottom: 1.25rem; z-index: 1;
+    }
+    .nearest-three {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.1rem;
+    }
+    .nearest-three h3 {
+      font-size: 0.8rem; color: var(--accent); text-transform: uppercase;
+      letter-spacing: 0.04em; margin-bottom: 0.6rem;
+    }
+    .near-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.45rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem;
+    }
+    .near-item:last-child { border-bottom: none; }
+    .near-item .name { font-weight: 600; color: var(--accent-soft); }
+    .near-item .meta { color: var(--text-muted); font-size: 0.8rem; }
+    .near-item button {
+      background: var(--accent); color: #1a1200; border: none; border-radius: 8px;
+      padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+    }
     .search-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.9rem 1rem;
-      margin-bottom: 1.25rem;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 1.25rem;
     }
     .search-box label {
-      display: block;
-      font-size: 0.8rem;
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 0.45rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
+      display: block; font-size: 0.8rem; color: var(--accent); font-weight: 600;
+      margin-bottom: 0.45rem; text-transform: uppercase; letter-spacing: 0.04em;
     }
     .search-row { display: flex; gap: 0.5rem; }
     .search-row input {
-      flex: 1;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.65rem 0.9rem;
-      color: var(--text);
-      font-size: 1rem;
-      font-family: inherit;
+      flex: 1; background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.65rem 0.9rem; color: var(--text);
+      font-size: 1rem; font-family: inherit;
     }
     .search-row input::placeholder { color: var(--text-muted); }
     .search-row button {
-      background: var(--accent);
-      color: #1a1200;
-      border: none;
-      border-radius: 10px;
-      padding: 0 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
+      background: var(--accent); color: #1a1200; border: none; border-radius: 10px;
+      padding: 0 1.1rem; font-weight: 600; cursor: pointer; font-family: inherit;
     }
-    .search-hint {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      margin-top: 0.4rem;
-    }
+    .search-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.4rem; }
     .filter-active {
-      background: rgba(212,160,23,0.15);
-      border: 1px solid rgba(212,160,23,0.4);
-      border-radius: 8px;
-      padding: 0.5rem 0.75rem;
-      margin-bottom: 1rem;
-      font-size: 0.85rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      background: rgba(212,160,23,0.15); border: 1px solid rgba(212,160,23,0.4);
+      border-radius: 8px; padding: 0.5rem 0.75rem; margin-bottom: 1rem;
+      font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;
     }
     .filter-active button {
-      background: none;
-      border: none;
-      color: var(--accent);
-      font-size: 0.85rem;
-      cursor: pointer;
-      font-family: inherit;
+      background: none; border: none; color: var(--accent); font-size: 0.85rem;
+      cursor: pointer; font-family: inherit;
     }
     .church-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.1rem;
-      margin-bottom: 0.85rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      position: relative;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.1rem; margin-bottom: 0.85rem;
+      cursor: pointer; transition: all 0.2s ease; position: relative;
     }
     .church-card:hover { border-color: var(--accent); transform: translateY(-1px); }
     .church-card.recommended {
@@ -150,298 +113,135 @@
       background: linear-gradient(145deg, #1e3a5f 0%, #1e293b 100%);
     }
     .church-card .badge {
-      position: absolute;
-      top: 0.75rem;
-      right: 0.75rem;
-      background: var(--accent);
-      color: #1a1200;
-      font-size: 0.68rem;
-      font-weight: 700;
-      padding: 0.18rem 0.5rem;
-      border-radius: 6px;
-      text-transform: uppercase;
+      position: absolute; top: 0.75rem; right: 0.75rem; background: var(--accent);
+      color: #1a1200; font-size: 0.68rem; font-weight: 700; padding: 0.18rem 0.5rem;
+      border-radius: 6px; text-transform: uppercase;
     }
     .church-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.15rem;
-      font-weight: 600;
-      color: var(--accent-soft);
-      margin-bottom: 0.15rem;
-      padding-right: 4.2rem;
+      font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600;
+      color: var(--accent-soft); margin-bottom: 0.15rem; padding-right: 4.2rem;
     }
     .church-place { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
     .church-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      font-size: 0.8rem;
-      color: var(--text-muted);
+      display: flex; flex-wrap: wrap; gap: 0.6rem; font-size: 0.8rem; color: var(--text-muted);
     }
-    .times-preview {
-      margin-top: 0.55rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-    }
+    .times-preview { margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .time-chip {
-      background: var(--bg-elevated);
-      font-size: 0.78rem;
-      font-weight: 600;
-      padding: 0.2rem 0.5rem;
-      border-radius: 6px;
+      background: var(--bg-elevated); font-size: 0.78rem; font-weight: 600;
+      padding: 0.2rem 0.5rem; border-radius: 6px;
     }
     .time-chip.match {
-      background: rgba(212,160,23,0.25);
-      color: var(--accent-soft);
+      background: rgba(212,160,23,0.25); color: var(--accent-soft);
       border: 1px solid rgba(212,160,23,0.4);
     }
     .btn-select {
-      display: block;
-      width: 100%;
-      margin-top: 0.75rem;
-      padding: 0.65rem;
-      background: var(--accent);
-      color: #1a1200;
-      border: none;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      font-family: inherit;
+      display: block; width: 100%; margin-top: 0.75rem; padding: 0.65rem;
+      background: var(--accent); color: #1a1200; border: none; border-radius: 10px;
+      font-weight: 600; font-size: 0.9rem; cursor: pointer; font-family: inherit;
     }
-    #mapContainer {
-      height: 260px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      margin-bottom: 1.25rem;
-      z-index: 1;
-    }
-    .nearest-three {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0.85rem 1rem;
-      margin-bottom: 1.1rem;
-    }
-    .nearest-three h3 {
-      font-size: 0.8rem;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.6rem;
-    }
-    .near-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.45rem 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.88rem;
-    }
-    .near-item:last-child { border-bottom: none; }
-    .near-item .name { font-weight: 600; color: var(--accent-soft); }
-    .near-item .meta { color: var(--text-muted); font-size: 0.8rem; }
-    .near-item button {
-      background: var(--accent);
-      color: #1a1200;
-      border: none;
-      border-radius: 8px;
-      padding: 0.3rem 0.65rem;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-    }
-
-    .no-results {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 2rem 1rem;
-      font-size: 0.95rem;
-    }
+    .no-results { text-align: center; color: var(--text-muted); padding: 2rem 1rem; font-size: 0.95rem; }
+    .loading { text-align: center; color: var(--text-muted); padding: 2rem; }
     #appScreen { display: none; }
     header {
       background: linear-gradient(180deg, #1a2744 0%, #0f172a 100%);
-      padding: 1rem 1.25rem 1.15rem;
-      text-align: center;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 50;
+      padding: 1rem 1.25rem 1.15rem; text-align: center;
+      border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50;
     }
     .parish-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--accent-soft);
+      font-family: 'Cormorant Garamond', serif; font-size: 1.3rem;
+      font-weight: 700; color: var(--accent-soft);
     }
     .parish-location { font-size: 0.82rem; color: var(--text-muted); }
     .change-church {
-      display: inline-block;
-      margin-top: 0.4rem;
-      font-size: 0.78rem;
-      color: var(--accent);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      text-decoration: underline;
+      display: inline-block; margin-top: 0.4rem; font-size: 0.78rem; color: var(--accent);
+      background: none; border: none; cursor: pointer; font-family: inherit; text-decoration: underline;
     }
     main { max-width: 520px; margin: 0 auto; padding: 1.15rem 1rem 5rem; }
     .nearest-card {
       background: linear-gradient(145deg, #1e3a5f 0%, #1e293b 100%);
-      border: 1px solid rgba(212,160,23,0.25);
-      border-radius: var(--radius);
-      padding: 1.35rem;
-      margin-bottom: 1.35rem;
-      box-shadow: var(--shadow);
+      border: 1px solid rgba(212,160,23,0.25); border-radius: var(--radius);
+      padding: 1.35rem; margin-bottom: 1.35rem; box-shadow: var(--shadow);
     }
     .nearest-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 0.4rem;
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.07em;
+      color: var(--accent); font-weight: 600; margin-bottom: 0.4rem;
     }
     .nearest-time {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 2.6rem;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1.1;
+      font-family: 'Cormorant Garamond', serif; font-size: 2.6rem;
+      font-weight: 700; color: #fff; line-height: 1.1;
     }
     .nearest-details { font-size: 0.9rem; color: var(--text-muted); margin: 0.25rem 0 0.9rem; }
     .countdown {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: rgba(34,197,94,0.15);
-      color: #4ade80;
-      font-size: 0.88rem;
-      font-weight: 600;
-      padding: 0.3rem 0.7rem;
-      border-radius: 999px;
-      margin-bottom: 1.1rem;
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: rgba(34,197,94,0.15); color: #4ade80; font-size: 0.88rem;
+      font-weight: 600; padding: 0.3rem 0.7rem; border-radius: 999px; margin-bottom: 1.1rem;
     }
     .btn-row { display: flex; gap: 0.65rem; flex-wrap: wrap; }
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.35rem;
-      padding: 0.65rem 1rem;
-      border-radius: 11px;
-      font-weight: 600;
-      font-size: 0.88rem;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+      padding: 0.65rem 1rem; border-radius: 11px; font-weight: 600; font-size: 0.88rem;
+      border: none; cursor: pointer; font-family: inherit; text-decoration: none;
     }
     .btn-primary { background: var(--accent); color: #1a1200; }
-    .btn-secondary {
-      background: var(--bg-elevated);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
     .section { margin-bottom: 1.5rem; }
     .section-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: var(--accent-soft);
-      margin-bottom: 0.8rem;
+      font-family: 'Cormorant Garamond', serif; font-size: 1.25rem;
+      font-weight: 600; color: var(--accent-soft); margin-bottom: 0.8rem;
     }
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.15rem;
-    }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem; }
     .schedule-group { margin-bottom: 1rem; }
     .schedule-group:last-child { margin-bottom: 0; }
     .schedule-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--accent);
-      font-weight: 600;
-      margin-bottom: 0.4rem;
+      font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--accent); font-weight: 600; margin-bottom: 0.4rem;
     }
     .times { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .time-badge {
-      background: var(--bg-elevated);
-      font-weight: 600;
-      font-size: 1rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 9px;
+      background: var(--bg-elevated); font-weight: 600; font-size: 1rem;
+      padding: 0.35rem 0.75rem; border-radius: 9px;
     }
     .note { font-size: 0.82rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.4; }
-    .map-container {
-      border-radius: var(--radius);
-      overflow: hidden;
-      height: 220px;
-      background: var(--bg-elevated);
-    }
+    .map-container { border-radius: var(--radius); overflow: hidden; height: 220px; background: var(--bg-elevated); }
     .map-container iframe { width: 100%; height: 100%; border: 0; }
     .contact-item {
-      display: flex;
-      gap: 0.75rem;
-      padding: 0.7rem 0;
-      border-bottom: 1px solid var(--border);
+      display: flex; gap: 0.75rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border);
     }
     .contact-item:last-child { border-bottom: none; }
     .contact-icon {
-      width: 38px; height: 38px;
-      background: var(--bg-elevated);
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
+      width: 38px; height: 38px; background: var(--bg-elevated); border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;
     }
     .contact-label { font-size: 0.78rem; color: var(--text-muted); }
     .contact-value { font-weight: 600; font-size: 0.95rem; }
     .contact-value a { color: var(--accent-soft); text-decoration: none; }
     footer {
-      text-align: center;
-      padding: 1.25rem 1rem;
-      color: var(--text-muted);
-      font-size: 0.78rem;
-      border-top: 1px solid var(--border);
+      text-align: center; padding: 1.25rem 1rem; color: var(--text-muted);
+      font-size: 0.78rem; border-top: 1px solid var(--border);
     }
     footer a { color: var(--accent); }
     .toast {
-      position: fixed;
-      bottom: 1.4rem;
-      left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: #166534;
-      color: white;
-      padding: 0.8rem 1.3rem;
-      border-radius: 12px;
-      font-weight: 500;
-      font-size: 0.88rem;
-      opacity: 0;
-      transition: all 0.3s ease;
-      z-index: 100;
-      max-width: 90%;
-      text-align: center;
+      position: fixed; bottom: 1.4rem; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #166534; color: white; padding: 0.8rem 1.3rem; border-radius: 12px;
+      font-weight: 500; font-size: 0.88rem; opacity: 0; transition: all 0.3s ease;
+      z-index: 100; max-width: 90%; text-align: center;
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
     .warning-box {
-      background: rgba(234,179,8,0.12);
-      border: 1px solid rgba(234,179,8,0.35);
-      border-radius: 10px;
-      padding: 0.7rem 0.9rem;
-      font-size: 0.8rem;
-      color: #fde68a;
-      margin-bottom: 1rem;
-      line-height: 1.4;
+      background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.35);
+      border-radius: 10px; padding: 0.7rem 0.9rem; font-size: 0.8rem;
+      color: #fde68a; margin-bottom: 1rem; line-height: 1.4;
     }
+    .report-box {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.15rem; margin-top: 0.5rem;
+    }
+    .report-box textarea, .report-box input {
+      width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.65rem 0.9rem; color: var(--text);
+      font-size: 0.95rem; font-family: inherit; margin-bottom: 0.6rem;
+    }
+    .report-box textarea { min-height: 80px; resize: vertical; }
   </style>
 </head>
 <body>
@@ -451,15 +251,13 @@
       <p>Dekanat Dobczyce + Zakliczyn</p>
     </div>
     <div id="mapContainer"></div>
-
     <div class="nearest-three" id="nearestThree" style="display:none;">
       <h3>3 najbliższe kościoły</h3>
       <div id="nearestThreeList"></div>
     </div>
-
     <div class="location-status" id="locStatus">
       <span>📍</span>
-      <span id="locText">Sprawdzam lokalizację…</span>
+      <span id="locText">Ładowanie danych…</span>
     </div>
     <div class="search-box">
       <label>Szukaj Mszy o godzinie</label>
@@ -467,13 +265,13 @@
         <input type="text" id="timeSearch" placeholder="np. 18:00 lub 9" inputmode="numeric" />
         <button onclick="applyTimeFilter()">Szukaj</button>
       </div>
-      <div class="search-hint">Wpisz godzinę (np. 7, 9:00, 18) – pokażę kościoły z Mszą o tej porze</div>
+      <div class="search-hint">Wpisz godzinę – pokażę kościoły z Mszą o tej porze</div>
     </div>
     <div id="filterInfo" class="filter-active" style="display:none;">
       <span id="filterText"></span>
       <button onclick="clearTimeFilter()">Wyczyść</button>
     </div>
-    <div id="churchList"></div>
+    <div id="churchList"><div class="loading">Ładowanie parafii…</div></div>
     <div id="noResults" class="no-results" style="display:none;">Brak kościołów z Mszą o tej godzinie</div>
   </div>
 
@@ -485,7 +283,7 @@
     </header>
     <main>
       <div class="warning-box">
-        Godziny mogą się zmieniać (sezon, święta, Wielki Post). Zawsze sprawdź ogłoszenia parafialne.
+        Godziny mogą się zmieniać. Zawsze sprawdź ogłoszenia parafialne.
       </div>
       <section class="nearest-card">
         <div class="nearest-label">✝️ Najbliższa Msza Święta</div>
@@ -493,7 +291,7 @@
         <div class="nearest-details" id="nearestDetails">—</div>
         <div class="countdown"><span>⏱️</span> <span id="countdownText">—</span></div>
         <div class="btn-row">
-          <button class="btn btn-primary" id="notifyBtn" onclick="requestNotification()">🔔 Przypomnij mi</button>
+          <button class="btn btn-primary" onclick="requestNotification()">🔔 Przypomnij mi</button>
           <a class="btn btn-secondary" href="#mapa">🗺️ Mapa</a>
         </div>
       </section>
@@ -518,131 +316,26 @@
         <h2 class="section-title">📞 Kontakt</h2>
         <div class="card" id="contactCard"></div>
       </section>
+      <section class="section">
+        <h2 class="section-title">⚠️ Zgłoś nieaktualne godziny</h2>
+        <div class="report-box">
+          <textarea id="reportMsg" placeholder="Opisz co się zmieniło (np. w niedzielę jest 18:00 zamiast 17:00)"></textarea>
+          <input id="reportContact" type="text" placeholder="Email lub telefon (opcjonalnie)" />
+          <button class="btn btn-primary" style="width:100%;" onclick="submitReport()">Wyślij zgłoszenie</button>
+        </div>
+      </section>
     </main>
-    <footer id="footerNote">
-      Dane orientacyjne – zawsze sprawdź oficjalną stronę parafii.
-    </footer>
+    <footer id="footerNote">Dane z bazy – zawsze weryfikuj lokalnie.</footer>
   </div>
   <div class="toast" id="toast"></div>
 
   <script>
-    const CHURCHES = {
-      zakliczyn: {
-        id: 'zakliczyn', name: 'Parafia Wszystkich Świętych', short: 'Wszystkich Świętych',
-        place: 'Zakliczyn k. Myślenic', address: 'ul. Kościelna 1, 32-406 Zakliczyn',
-        lat: 49.8830, lng: 20.0243, phone: '+48 798 848 819',
-        website: 'https://parafiazakliczyn.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=ul.+Kościelna+1,+32-406+Zakliczyn&z=16&output=embed',
-        mapLink: 'https://maps.app.goo.gl/7TB6jrZXxfFGz2BFA',
-        sunday: [7, 9, 11.5, 17],
-        weekday: (d) => { const m = d.getMonth()+1; if (m>=4 && m<=8) return [7,18]; if (m>=11 || m<=3) return [7,17]; return [18]; },
-        note: 'Kaplica Stojowice 10:15 (niedziela). W WP po Gorzkich Żalach 15:00.'
-      },
-      dobczyce_mb: {
-        id: 'dobczyce_mb', name: 'MB Wspomożenia Wiernych', short: 'MB Wspomożenia',
-        place: 'Dobczyce', address: 'ul. Kościelna 1, 32-410 Dobczyce',
-        lat: 49.8808, lng: 20.0895, phone: '+48 12 271 10 44',
-        website: 'https://www.parafiadobczyce.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=ul.+Kościelna+1,+32-410+Dobczyce&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Kościelna+1+Dobczyce',
-        sunday: [7, 8.5, 10, 11.5, 13, 18], weekday: () => [6.5, 7, 18],
-        note: 'Święta w tygodniu: 7:00, 8:30, 10:00, 16:00, 18:00'
-      },
-      dobczyce_jan: {
-        id: 'dobczyce_jan', name: 'św. Jana Chrzciciela', short: 'św. Jana Chrzciciela',
-        place: 'Dobczyce (Stare Miasto)', address: 'Stare Miasto 3, 32-410 Dobczyce',
-        lat: 49.8815, lng: 20.0920, phone: '+48 12 271 10 44',
-        website: 'https://www.parafiadobczyce.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Stare+Miasto+3,+Dobczyce&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Stare+Miasto+3+Dobczyce',
-        sunday: [13], weekday: () => [],
-        note: 'Msza niedzielna 13:00 głównie w okresie letnim (V–X)'
-      },
-      dziekanowice: {
-        id: 'dziekanowice', name: 'Macierzyństwa NMP (Sanktuarium)', short: 'Macierzyństwa NMP',
-        place: 'Dziekanowice', address: 'Dziekanowice 7, 32-410 Dobczyce',
-        lat: 49.8750, lng: 20.1050, phone: '+48 12 271 13 14',
-        website: 'https://www.dziekanowice.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Dziekanowice+7,+Dobczyce&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Dziekanowice+7',
-        sunday: [7, 9, 11, 16], weekday: () => [7, 18],
-        note: 'Sanktuarium. Środy: Msza z Nowenną o 18:00'
-      },
-      kornatka: {
-        id: 'kornatka', name: 'Miłosierdzia Bożego', short: 'Miłosierdzia Bożego',
-        place: 'Kornatka', address: 'Kornatka 220, 32-410 Dobczyce',
-        lat: 49.8474, lng: 20.0807, phone: '+48 12 271 27 72',
-        website: 'https://parafiakornatka.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Kornatka+220&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Kornatka+220',
-        sunday: [7, 9, 11],
-        weekday: (d) => { const m = d.getMonth()+1; if (m>=6 && m<=8) return [7,19]; if (m>=11 || m<=3) return [7,17]; return [7,18]; },
-        note: 'Niedziela 9:00 w Brzezowej. Godziny wieczorne sezonowe.'
-      },
-      raciechowice: {
-        id: 'raciechowice', name: 'św. Jakuba Apostoła', short: 'św. Jakuba',
-        place: 'Raciechowice', address: 'Raciechowice 23, 32-415 Raciechowice',
-        lat: 49.8500, lng: 20.1500, phone: '+48 12 271 50 09',
-        website: 'https://parafia-raciechowice.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Raciechowice+23&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Raciechowice+23',
-        sunday: [7.5, 9, 10.25, 11.5, 16],
-        weekday: (d) => { const m = d.getMonth()+1; if (m>=11 || m<=3) return [6.5,17]; return [6.5,18.5]; },
-        note: '10:15 kaplica w Glichowie (niedziela)'
-      },
-      stadniki: {
-        id: 'stadniki', name: 'Najświętszego Serca Pana Jezusa', short: 'NSPJ Stadniki',
-        place: 'Stadniki', address: 'Stadniki 81, 32-422 Stadniki',
-        lat: 49.8600, lng: 20.1200, phone: '+48 12 271 15 24',
-        website: 'https://stadniki.scj.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Stadniki+81&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Stadniki+81',
-        sunday: [7, 9, 11, 18], weekday: () => [18],
-        note: 'Soboty też 7:00 (poza VII–VIII). I piątki: dodatkowe godziny.'
-      },
-      wisniowa: {
-        id: 'wisniowa', name: 'św. Marcina', short: 'św. Marcina',
-        place: 'Wiśniowa', address: 'Wiśniowa 1a, 32-412 Wiśniowa',
-        lat: 49.7876, lng: 20.1173, phone: '+48 12 271 40 97',
-        website: 'https://parafia-wisniowa.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Wiśniowa+1a&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Wiśniowa+1a',
-        sunday: [7, 9, 11, 18], weekday: () => [7, 18],
-        note: 'Pn–Wt także 6:30. W X i V godziny wieczorne mogą być przesunięte.'
-      },
-      weglowka: {
-        id: 'weglowka', name: 'MB Nieustającej Pomocy', short: 'MB Nieustającej Pomocy',
-        place: 'Węglówka', address: 'Węglówka 110, 32-412 Wiśniowa',
-        lat: 49.7486, lng: 20.0775, phone: '+48 12 271 42 82',
-        website: 'https://parafiaweglowka.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Węglówka+110&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Węglówka+110',
-        sunday: [7, 9, 11, 17], weekday: () => [7, 18],
-        note: 'Sercanie. Godziny według oficjalnej strony parafii.'
-      },
-      lipnik: {
-        id: 'lipnik', name: 'św. Jadwigi Królowej', short: 'św. Jadwigi',
-        place: 'Lipnik', address: 'Lipnik 400, 32-412 Wiśniowa',
-        lat: 49.7800, lng: 20.1000, phone: '+48 12 373 60 99',
-        website: 'http://www.lipnik-jadwiga.diecezja.pl',
-        mapEmbed: 'https://maps.google.com/maps?q=Lipnik+400,+Wiśniowa&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Lipnik+400+Wiśniowa',
-        sunday: [7.5, 9.5, 11.5],
-        weekday: (d) => { const m = d.getMonth()+1; if (m>=11 || m<=3) return [7,17]; return [7,18]; },
-        note: 'Pn, Wt, Czw – 7:00; Śr, Pt, Sob – 18:00 (zimą 17:00)'
-      },
-      gruszow: {
-        id: 'gruszow', name: 'Rozesłania Świętych Apostołów', short: 'Rozesłania Apostołów',
-        place: 'Gruszów', address: 'Gruszów 136, 32-414 Gruszów',
-        lat: 49.8531, lng: 20.2062, phone: '+48 12 271 62 03',
-        website: '',
-        mapEmbed: 'https://maps.google.com/maps?q=Gruszów+136&z=16&output=embed',
-        mapLink: 'https://www.google.com/maps/search/?api=1&query=Gruszów+136',
-        sunday: [8, 11, 15], weekday: () => [7, 17],
-        note: 'Godziny według danych diecezjalnych.'
-      }
-    };
+    // ========== SUPABASE ==========
+    const SUPABASE_URL = 'https://rjcbrmmpwfgewpbidjdi.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqY2JybW1wd2ZnZXdwYmlkamRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0Nzk4NzAsImV4cCI6MjEwOTA1NTg3MH0.7foyJWJpyiNx-mHtf8yG5xHOF-kz1sfG5b7erFlw7hQ';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+    let CHURCHES = {};
     let currentChurch = null;
     let userLat = null, userLng = null;
     let timeFilter = null;
@@ -653,71 +346,148 @@
     function formatTimeNum(t) {
       const h = Math.floor(t);
       const m = Math.round((t % 1) * 60);
-      return m === 0 ? h + ':00' : h + ':' + String(m).padStart(2,'0');
+      return m === 0 ? h + ':00' : h + ':' + String(m).padStart(2, '0');
     }
     function parseTimeInput(str) {
-      str = str.trim().replace(',', '.');
+      str = (str || '').trim().replace(',', '.');
       if (!str) return null;
       const match = str.match(/^(\d{1,2})(?:[:\.](\d{1,2}))?$/);
       if (!match) return null;
-      let h = parseInt(match[1], 10);
-      let m = match[2] ? parseInt(match[2], 10) : 0;
+      const h = parseInt(match[1], 10);
+      const m = match[2] ? parseInt(match[2], 10) : 0;
       if (h > 23 || m > 59) return null;
       return h + m / 60;
     }
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371;
-      const dLat = (lat2-lat1)*Math.PI/180;
-      const dLon = (lon2-lon1)*Math.PI/180;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
+
+    // Resolve weekday times using seasonal_rules from DB
+    function getWeekdayTimes(parish, date) {
+      const rules = parish.seasonal_rules || {};
+      const month = (date || new Date()).getMonth() + 1;
+      if (rules.summer_months && rules.summer && rules.summer_months.includes(month)) {
+        return rules.summer;
+      }
+      if (rules.winter_months && rules.winter && rules.winter_months.includes(month)) {
+        return rules.winter;
+      }
+      // default winter months if only winter rule present
+      if (rules.winter && !rules.winter_months && (month >= 11 || month <= 3)) {
+        return rules.winter;
+      }
+      if (rules.summer && !rules.summer_months && month >= 4 && month <= 8) {
+        return rules.summer;
+      }
+      return parish.weekday_times || [];
+    }
+
+    function getSundayTimes(parish) {
+      return parish.sunday_times || [];
+    }
+
     function getTopNearest(n) {
       if (userLat == null) return [];
       return Object.keys(CHURCHES)
         .map(id => ({ id, dist: haversine(userLat, userLng, CHURCHES[id].lat, CHURCHES[id].lng) }))
-        .sort((a,b) => a.dist - b.dist)
+        .sort((a, b) => a.dist - b.dist)
         .slice(0, n);
     }
+
     function getNextMassForChurch(church) {
       const now = new Date();
       const candidates = [];
       for (let d = 0; d < 8; d++) {
         const day = new Date(now);
         day.setDate(now.getDate() + d);
-        day.setHours(0,0,0,0);
+        day.setHours(0, 0, 0, 0);
         const isSun = day.getDay() === 0;
-        const times = isSun ? church.sunday : church.weekday(day);
+        const times = isSun ? getSundayTimes(church) : getWeekdayTimes(church, day);
         times.forEach(t => {
           const mass = new Date(day);
-          mass.setHours(Math.floor(t), Math.round((t%1)*60), 0, 0);
+          mass.setHours(Math.floor(t), Math.round((t % 1) * 60), 0, 0);
           if (mass > now - 120000) candidates.push(mass);
         });
       }
-      candidates.sort((a,b) => a - b);
+      candidates.sort((a, b) => a - b);
       return candidates[0] || null;
     }
+
     function churchHasTime(church, timeNum, isSunday) {
-      const times = isSunday ? church.sunday : church.weekday(new Date());
+      const times = isSunday ? getSundayTimes(church) : getWeekdayTimes(church, new Date());
       return times.some(t => Math.abs(t - timeNum) < 0.05);
     }
+
+    // ========== LOAD FROM SUPABASE ==========
+    async function loadParishes() {
+      const status = document.getElementById('locText');
+      try {
+        const { data, error } = await supabase
+          .from('parishes')
+          .select('*')
+          .eq('is_active', true)
+          .order('short_name');
+        if (error) throw error;
+        if (!data || data.length === 0) {
+          status.textContent = 'Brak parafii w bazie – uruchom SQL setup.';
+          document.getElementById('churchList').innerHTML = '<div class="no-results">Baza jest pusta. Wklej plik supabase-setup.sql w SQL Editor.</div>';
+          return false;
+        }
+        CHURCHES = {};
+        data.forEach(row => {
+          CHURCHES[row.id] = {
+            id: row.id,
+            name: row.name,
+            short: row.short_name,
+            place: row.place,
+            address: row.address,
+            lat: row.lat,
+            lng: row.lng,
+            phone: row.phone,
+            website: row.website,
+            deanery: row.deanery,
+            mapEmbed: row.map_embed,
+            mapLink: row.map_link,
+            sunday_times: row.sunday_times || [],
+            weekday_times: row.weekday_times || [],
+            seasonal_rules: row.seasonal_rules || {},
+            note: row.note,
+            confidence: row.confidence
+          };
+        });
+        return true;
+      } catch (e) {
+        console.error(e);
+        status.textContent = 'Błąd połączenia z bazą';
+        document.getElementById('churchList').innerHTML = '<div class="no-results">Nie udało się pobrać danych. Sprawdź czy uruchomiłeś SQL w Supabase.</div>';
+        return false;
+      }
+    }
+
     function initMap() {
       if (map) return;
+      const el = document.getElementById('mapContainer');
+      if (!el) return;
       map = L.map('mapContainer').setView([49.85, 20.10], 11);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap'
       }).addTo(map);
       for (const id in CHURCHES) {
         const c = CHURCHES[id];
+        if (c.lat == null) continue;
         const m = L.marker([c.lat, c.lng]).addTo(map);
         m.bindPopup('<b>' + c.short + '</b><br>' + c.place +
           '<br><button onclick="selectChurch(\'' + id + '\')" style="margin-top:6px;padding:4px 10px;background:#d4a017;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Wybierz</button>');
         markers[id] = m;
       }
     }
+
     function updateMapHighlight(topIds) {
       if (!map) return;
-      // reset styles roughly by re-binding
       for (const id in markers) {
         markers[id].setOpacity(topIds.includes(id) ? 1 : 0.55);
       }
@@ -728,29 +498,33 @@
         }).addTo(map).bindPopup('Twoja lokalizacja');
       }
     }
+
     function renderNearestThree() {
       const box = document.getElementById('nearestThree');
       const list = document.getElementById('nearestThreeList');
-      if (userLat == null) { box.style.display = 'none'; return; }
+      if (userLat == null || !Object.keys(CHURCHES).length) {
+        box.style.display = 'none';
+        return;
+      }
       const top = getTopNearest(3);
       if (!top.length) { box.style.display = 'none'; return; }
       box.style.display = 'block';
       list.innerHTML = top.map((item, idx) => {
         const c = CHURCHES[item.id];
         const next = getNextMassForChurch(c);
-        let nextStr = next ? next.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'}) : '—';
+        let nextStr = next ? next.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '—';
         if (next) {
           const today = new Date(); today.setHours(0,0,0,0);
           const d = new Date(next); d.setHours(0,0,0,0);
           if (d.getTime() > today.getTime()) nextStr += ' (jutro+)';
         }
-        return '<div class="near-item">' +
-          '<div><div class="name">' + (idx+1) + '. ' + c.short + '</div>' +
+        return '<div class="near-item"><div><div class="name">' + (idx+1) + '. ' + c.short + '</div>' +
           '<div class="meta">' + item.dist.toFixed(1) + ' km · najbliższa: <strong>' + nextStr + '</strong></div></div>' +
           '<button onclick="selectChurch(\'' + item.id + '\')">Wybierz</button></div>';
       }).join('');
       updateMapHighlight(top.map(t => t.id));
     }
+
     function initLocation() {
       const status = document.getElementById('locStatus');
       const text = document.getElementById('locText');
@@ -765,11 +539,10 @@
         pos => {
           userLat = pos.coords.latitude;
           userLng = pos.coords.longitude;
-          const top = getTopNearest(1);
-          const dist = top[0] ? top[0].dist : 0;
           status.className = 'location-status success';
-          text.innerHTML = 'Lokalizacja ustalona. Poniżej 3 najbliższe kościoły.';
+          text.textContent = 'Lokalizacja ustalona. Poniżej 3 najbliższe kościoły.';
           renderNearestThree();
+          const top = getTopNearest(1);
           renderList(top[0] ? top[0].id : null);
         },
         () => {
@@ -780,6 +553,7 @@
         { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
       );
     }
+
     function renderList(recommendedId) {
       const list = document.getElementById('churchList');
       const noRes = document.getElementById('noResults');
@@ -787,6 +561,10 @@
       noRes.style.display = 'none';
       const isSunday = new Date().getDay() === 0;
       let ids = Object.keys(CHURCHES);
+      if (!ids.length) {
+        list.innerHTML = '<div class="no-results">Brak danych</div>';
+        return;
+      }
       if (timeFilter != null) {
         ids = ids.filter(id => churchHasTime(CHURCHES[id], timeFilter, isSunday));
         if (ids.length === 0) { noRes.style.display = 'block'; return; }
@@ -798,13 +576,13 @@
           return haversine(userLat, userLng, CHURCHES[a].lat, CHURCHES[a].lng) -
                  haversine(userLat, userLng, CHURCHES[b].lat, CHURCHES[b].lng);
         }
-        return CHURCHES[a].short.localeCompare(CHURCHES[b].short);
+        return (CHURCHES[a].short || '').localeCompare(CHURCHES[b].short || '');
       });
       ids.forEach(id => {
         const c = CHURCHES[id];
         let dist = '';
         if (userLat != null) dist = '~' + haversine(userLat, userLng, c.lat, c.lng).toFixed(1) + ' km';
-        const times = isSunday ? c.sunday : c.weekday(new Date());
+        const times = isSunday ? getSundayTimes(c) : getWeekdayTimes(c, new Date());
         const chips = times.map(t => {
           const match = timeFilter != null && Math.abs(t - timeFilter) < 0.05;
           return '<span class="time-chip' + (match ? ' match' : '') + '">' + formatTimeNum(t) + '</span>';
@@ -813,8 +591,8 @@
         card.className = 'church-card' + (id === recommendedId ? ' recommended' : '');
         card.innerHTML = (id === recommendedId ? '<span class="badge">Polecany</span>' : '') +
           '<div class="church-name">' + c.name + '</div>' +
-          '<div class="church-place">' + c.place + '</div>' +
-          '<div class="church-meta"><span>📍 ' + c.address.split(',')[0] + '</span>' +
+          '<div class="church-place">' + c.place + (c.deanery ? ' · ' + c.deanery : '') + '</div>' +
+          '<div class="church-meta"><span>📍 ' + (c.address ? c.address.split(',')[0] : '') + '</span>' +
           (dist ? '<span>📏 ' + dist + '</span>' : '') + '</div>' +
           '<div class="times-preview">' + (chips || '<span class="time-chip">brak danych</span>') + '</div>' +
           '<button class="btn-select" onclick="selectChurch(\'' + id + '\')">' +
@@ -822,22 +600,27 @@
         list.appendChild(card);
       });
     }
+
     function applyTimeFilter() {
-      const val = document.getElementById('timeSearch').value;
-      const parsed = parseTimeInput(val);
-      if (parsed == null) { showToast('Podaj poprawną godzinę (np. 18:00 lub 9)'); return; }
+      const parsed = parseTimeInput(document.getElementById('timeSearch').value);
+      if (parsed == null) { showToast('Podaj poprawną godzinę (np. 18:00)'); return; }
       timeFilter = parsed;
       document.getElementById('filterInfo').style.display = 'flex';
       document.getElementById('filterText').textContent = 'Filtr: Msze o ' + formatTimeNum(parsed);
-      renderList(userLat ? getTopNearest(1)[0]?.id : null);
+      const top = userLat ? getTopNearest(1) : [];
+      renderList(top[0] ? top[0].id : null);
     }
     function clearTimeFilter() {
       timeFilter = null;
       document.getElementById('timeSearch').value = '';
       document.getElementById('filterInfo').style.display = 'none';
-      renderList(userLat ? getTopNearest(1)[0]?.id : null);
+      const top = userLat ? getTopNearest(1) : [];
+      renderList(top[0] ? top[0].id : null);
     }
-    document.getElementById('timeSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyTimeFilter(); });
+    document.getElementById('timeSearch').addEventListener('keydown', e => {
+      if (e.key === 'Enter') applyTimeFilter();
+    });
+
     function selectChurch(id) {
       currentChurch = CHURCHES[id];
       localStorage.setItem('selectedChurch', id);
@@ -848,30 +631,17 @@
       document.getElementById('appScreen').style.display = 'none';
       if (map) setTimeout(function(){ map.invalidateSize(); }, 150);
       renderNearestThree();
-      renderList(userLat ? (getTopNearest(1)[0] && getTopNearest(1)[0].id) : null);
+      const top = userLat ? getTopNearest(1) : [];
+      renderList(top[0] ? top[0].id : null);
     }
     function showApp() {
       document.getElementById('selectionScreen').style.display = 'none';
       document.getElementById('appScreen').style.display = 'block';
       updateUI();
     }
+
     function getNextMass() {
-      const now = new Date();
-      const candidates = [];
-      for (let d = 0; d < 8; d++) {
-        const day = new Date(now);
-        day.setDate(now.getDate() + d);
-        day.setHours(0,0,0,0);
-        const isSun = day.getDay() === 0;
-        const times = isSun ? currentChurch.sunday : currentChurch.weekday(day);
-        times.forEach(t => {
-          const mass = new Date(day);
-          mass.setHours(Math.floor(t), Math.round((t%1)*60), 0, 0);
-          if (mass > now - 120000) candidates.push(mass);
-        });
-      }
-      candidates.sort((a,b) => a - b);
-      return candidates[0] || null;
+      return getNextMassForChurch(currentChurch);
     }
     function updateNearest() {
       const next = getNextMass();
@@ -881,23 +651,22 @@
         document.getElementById('countdownText').textContent = '—';
         return;
       }
-      document.getElementById('nearestTime').textContent = next.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('nearestTime').textContent = next.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
       const today = new Date(); today.setHours(0,0,0,0);
-      const tom = new Date(today); tom.setDate(today.getDate()+1);
+      const tom = new Date(today); tom.setDate(today.getDate() + 1);
       const d = new Date(next); d.setHours(0,0,0,0);
-      let label = d.getTime()===today.getTime() ? 'dziś' : d.getTime()===tom.getTime() ? 'jutro' :
-        next.toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'});
+      let label = d.getTime() === today.getTime() ? 'dziś' : d.getTime() === tom.getTime() ? 'jutro' :
+        next.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
       document.getElementById('nearestDetails').textContent = label;
       const diff = next - new Date();
-      const h = Math.floor(diff/3600000);
-      const m = Math.floor((diff%3600000)/60000);
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
       let txt = h > 24 ? 'za ' + Math.floor(h/24) + ' dni' : h > 0 ? 'za ' + h + ' h ' + m + ' min' : m > 0 ? 'za ' + m + ' min' : 'wkrótce';
       document.getElementById('countdownText').textContent = txt;
     }
     function updateSchedule() {
-      const now = new Date();
-      const sun = currentChurch.sunday.map(t => '<span class="time-badge">' + formatTimeNum(t) + '</span>').join('');
-      const week = currentChurch.weekday(now).map(t => '<span class="time-badge">' + formatTimeNum(t) + '</span>').join('');
+      const sun = getSundayTimes(currentChurch).map(t => '<span class="time-badge">' + formatTimeNum(t) + '</span>').join('');
+      const week = getWeekdayTimes(currentChurch, new Date()).map(t => '<span class="time-badge">' + formatTimeNum(t) + '</span>').join('');
       document.getElementById('scheduleCard').innerHTML =
         '<div class="schedule-group"><div class="schedule-label">Niedziele i święta</div><div class="times">' + (sun || '—') + '</div></div>' +
         '<div class="schedule-group"><div class="schedule-label">Dni powszednie</div><div class="times">' + (week || '—') + '</div></div>' +
@@ -906,25 +675,49 @@
     function updateContact() {
       const c = currentChurch;
       document.getElementById('contactCard').innerHTML =
-        '<div class="contact-item"><div class="contact-icon">⛪</div><div><div class="contact-label">Adres</div><div class="contact-value">' + c.address + '</div></div></div>' +
-        '<div class="contact-item"><div class="contact-icon">📞</div><div><div class="contact-label">Telefon</div><div class="contact-value"><a href="tel:' + c.phone.replace(/\s/g,'') + '">' + c.phone + '</a></div></div></div>' +
-        (c.website ? '<div class="contact-item"><div class="contact-icon">🌐</div><div><div class="contact-label">Strona</div><div class="contact-value"><a href="' + c.website + '" target="_blank">' + c.website.replace('https://','') + '</a></div></div></div>' : '');
+        '<div class="contact-item"><div class="contact-icon">⛪</div><div><div class="contact-label">Adres</div><div class="contact-value">' + (c.address || '—') + '</div></div></div>' +
+        '<div class="contact-item"><div class="contact-icon">📞</div><div><div class="contact-label">Telefon</div><div class="contact-value">' +
+        (c.phone ? '<a href="tel:' + c.phone.replace(/\s/g,'') + '">' + c.phone + '</a>' : '—') + '</div></div></div>' +
+        (c.website ? '<div class="contact-item"><div class="contact-icon">🌐</div><div><div class="contact-label">Strona</div><div class="contact-value"><a href="' + c.website + '" target="_blank">' + c.website.replace(/^https?:\/\//,'') + '</a></div></div></div>' : '');
     }
     function updateMap() {
       const c = currentChurch;
-      document.getElementById('mapFrame').src = c.mapEmbed;
+      document.getElementById('mapFrame').src = c.mapEmbed || '';
       document.getElementById('mapTitle').textContent = c.name;
-      document.getElementById('mapAddress').textContent = c.address;
-      document.getElementById('mapLink').href = c.mapLink;
+      document.getElementById('mapAddress').textContent = c.address || '';
+      document.getElementById('mapLink').href = c.mapLink || '#';
     }
     function updateUI() {
       document.getElementById('headerName').textContent = currentChurch.name;
       document.getElementById('headerPlace').textContent = currentChurch.place;
       updateNearest(); updateSchedule(); updateContact(); updateMap();
       document.getElementById('footerNote').innerHTML = currentChurch.website
-        ? 'Sprawdź aktualne ogłoszenia: <a href="' + currentChurch.website + '" target="_blank">strona parafii</a>'
-        : 'Dane orientacyjne – sprawdź ogłoszenia parafialne.';
+        ? 'Sprawdź ogłoszenia: <a href="' + currentChurch.website + '" target="_blank">strona parafii</a>'
+        : 'Dane z bazy – weryfikuj lokalnie.';
     }
+
+    async function submitReport() {
+      if (!currentChurch) return;
+      const msg = document.getElementById('reportMsg').value.trim();
+      if (!msg) { showToast('Napisz co się zmieniło'); return; }
+      const contact = document.getElementById('reportContact').value.trim();
+      try {
+        const { error } = await supabase.from('reports').insert({
+          parish_id: currentChurch.id,
+          message: msg,
+          contact: contact || null,
+          status: 'new'
+        });
+        if (error) throw error;
+        document.getElementById('reportMsg').value = '';
+        document.getElementById('reportContact').value = '';
+        showToast('Dziękujemy! Zgłoszenie wysłane.');
+      } catch (e) {
+        console.error(e);
+        showToast('Nie udało się wysłać. Spróbuj później.');
+      }
+    }
+
     function requestNotification() {
       if (!('Notification' in window)) { showToast('Brak wsparcia powiadomień'); return; }
       if (Notification.permission === 'granted') { scheduleNotification(); return; }
@@ -937,7 +730,7 @@
     function scheduleNotification() {
       const next = getNextMass();
       if (!next) return;
-      const delay = next - new Date() - 20*60000;
+      const delay = next - new Date() - 20 * 60000;
       if (delay < 0) {
         showToast('Msza już wkrótce (' + next.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}) + ')');
         return;
@@ -957,7 +750,10 @@
       t.classList.add('show');
       setTimeout(() => t.classList.remove('show'), 3000);
     }
-    function init() {
+
+    async function init() {
+      const ok = await loadParishes();
+      if (!ok) return;
       const saved = localStorage.getItem('selectedChurch');
       if (saved && CHURCHES[saved]) {
         currentChurch = CHURCHES[saved];
