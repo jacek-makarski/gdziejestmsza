@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#1a2744" />
   <meta name="description" content="Msze Święte – Dekanat Dobczyce + Zakliczyn" />
   <title>Msze Święte – Dekanat Dobczyce</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -200,6 +202,51 @@
       cursor: pointer;
       font-family: inherit;
     }
+    #mapContainer {
+      height: 260px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+      z-index: 1;
+    }
+    .nearest-three {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.1rem;
+    }
+    .nearest-three h3 {
+      font-size: 0.8rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.6rem;
+    }
+    .near-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .near-item:last-child { border-bottom: none; }
+    .near-item .name { font-weight: 600; color: var(--accent-soft); }
+    .near-item .meta { color: var(--text-muted); font-size: 0.8rem; }
+    .near-item button {
+      background: var(--accent);
+      color: #1a1200;
+      border: none;
+      border-radius: 8px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
     .no-results {
       text-align: center;
       color: var(--text-muted);
@@ -396,6 +443,13 @@
       <h1>Msze Święte</h1>
       <p>Dekanat Dobczyce + Zakliczyn</p>
     </div>
+    <div id="mapContainer"></div>
+
+    <div class="nearest-three" id="nearestThree" style="display:none;">
+      <h3>3 najbliższe kościoły</h3>
+      <div id="nearestThreeList"></div>
+    </div>
+
     <div class="location-status" id="locStatus">
       <span>📍</span>
       <span id="locText">Sprawdzam lokalizację…</span>
@@ -586,6 +640,8 @@
     let userLat = null, userLng = null;
     let timeFilter = null;
     let notificationTimeout = null;
+    let map = null;
+    let markers = {};
 
     function formatTimeNum(t) {
       const h = Math.floor(t);
@@ -609,23 +665,89 @@
       const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
-    function getRecommendedId() {
-      if (userLat == null) return null;
-      let best = null, bestD = Infinity;
-      for (const id in CHURCHES) {
-        const c = CHURCHES[id];
-        const d = haversine(userLat, userLng, c.lat, c.lng);
-        if (d < bestD) { bestD = d; best = id; }
+    function getTopNearest(n) {
+      if (userLat == null) return [];
+      return Object.keys(CHURCHES)
+        .map(id => ({ id, dist: haversine(userLat, userLng, CHURCHES[id].lat, CHURCHES[id].lng) }))
+        .sort((a,b) => a.dist - b.dist)
+        .slice(0, n);
+    }
+    function getNextMassForChurch(church) {
+      const now = new Date();
+      const candidates = [];
+      for (let d = 0; d < 8; d++) {
+        const day = new Date(now);
+        day.setDate(now.getDate() + d);
+        day.setHours(0,0,0,0);
+        const isSun = day.getDay() === 0;
+        const times = isSun ? church.sunday : church.weekday(day);
+        times.forEach(t => {
+          const mass = new Date(day);
+          mass.setHours(Math.floor(t), Math.round((t%1)*60), 0, 0);
+          if (mass > now - 120000) candidates.push(mass);
+        });
       }
-      return best;
+      candidates.sort((a,b) => a - b);
+      return candidates[0] || null;
     }
     function churchHasTime(church, timeNum, isSunday) {
       const times = isSunday ? church.sunday : church.weekday(new Date());
       return times.some(t => Math.abs(t - timeNum) < 0.05);
     }
+    function initMap() {
+      if (map) return;
+      map = L.map('mapContainer').setView([49.85, 20.10], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(map);
+      for (const id in CHURCHES) {
+        const c = CHURCHES[id];
+        const m = L.marker([c.lat, c.lng]).addTo(map);
+        m.bindPopup('<b>' + c.short + '</b><br>' + c.place +
+          '<br><button onclick="selectChurch(\'' + id + '\')" style="margin-top:6px;padding:4px 10px;background:#d4a017;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Wybierz</button>');
+        markers[id] = m;
+      }
+    }
+    function updateMapHighlight(topIds) {
+      if (!map) return;
+      // reset styles roughly by re-binding
+      for (const id in markers) {
+        markers[id].setOpacity(topIds.includes(id) ? 1 : 0.55);
+      }
+      if (userLat != null) {
+        if (window.userMarker) map.removeLayer(window.userMarker);
+        window.userMarker = L.circleMarker([userLat, userLng], {
+          radius: 8, color: '#3b82f6', fillColor: '#60a5fa', fillOpacity: 0.9
+        }).addTo(map).bindPopup('Twoja lokalizacja');
+      }
+    }
+    function renderNearestThree() {
+      const box = document.getElementById('nearestThree');
+      const list = document.getElementById('nearestThreeList');
+      if (userLat == null) { box.style.display = 'none'; return; }
+      const top = getTopNearest(3);
+      if (!top.length) { box.style.display = 'none'; return; }
+      box.style.display = 'block';
+      list.innerHTML = top.map((item, idx) => {
+        const c = CHURCHES[item.id];
+        const next = getNextMassForChurch(c);
+        let nextStr = next ? next.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'}) : '—';
+        if (next) {
+          const today = new Date(); today.setHours(0,0,0,0);
+          const d = new Date(next); d.setHours(0,0,0,0);
+          if (d.getTime() > today.getTime()) nextStr += ' (jutro+)';
+        }
+        return '<div class="near-item">' +
+          '<div><div class="name">' + (idx+1) + '. ' + c.short + '</div>' +
+          '<div class="meta">' + item.dist.toFixed(1) + ' km · najbliższa: <strong>' + nextStr + '</strong></div></div>' +
+          '<button onclick="selectChurch(\'' + item.id + '\')">Wybierz</button></div>';
+      }).join('');
+      updateMapHighlight(top.map(t => t.id));
+    }
     function initLocation() {
       const status = document.getElementById('locStatus');
       const text = document.getElementById('locText');
+      initMap();
       if (!navigator.geolocation) {
         status.className = 'location-status error';
         text.textContent = 'Geolokalizacja niedostępna – wybierz ręcznie';
@@ -636,11 +758,12 @@
         pos => {
           userLat = pos.coords.latitude;
           userLng = pos.coords.longitude;
-          const rec = getRecommendedId();
-          const dist = haversine(userLat, userLng, CHURCHES[rec].lat, CHURCHES[rec].lng);
+          const top = getTopNearest(1);
+          const dist = top[0] ? top[0].dist : 0;
           status.className = 'location-status success';
-          text.innerHTML = 'Najbliższy: <strong>' + CHURCHES[rec].short + '</strong> (~' + dist.toFixed(1) + ' km)';
-          renderList(rec);
+          text.innerHTML = 'Lokalizacja ustalona. Poniżej 3 najbliższe kościoły.';
+          renderNearestThree();
+          renderList(top[0] ? top[0].id : null);
         },
         () => {
           status.className = 'location-status error';
@@ -699,13 +822,13 @@
       timeFilter = parsed;
       document.getElementById('filterInfo').style.display = 'flex';
       document.getElementById('filterText').textContent = 'Filtr: Msze o ' + formatTimeNum(parsed);
-      renderList(getRecommendedId());
+      renderList(userLat ? getTopNearest(1)[0]?.id : null);
     }
     function clearTimeFilter() {
       timeFilter = null;
       document.getElementById('timeSearch').value = '';
       document.getElementById('filterInfo').style.display = 'none';
-      renderList(getRecommendedId());
+      renderList(userLat ? getTopNearest(1)[0]?.id : null);
     }
     document.getElementById('timeSearch').addEventListener('keydown', e => { if (e.key === 'Enter') applyTimeFilter(); });
     function selectChurch(id) {
@@ -716,7 +839,9 @@
     function showSelection() {
       document.getElementById('selectionScreen').style.display = 'flex';
       document.getElementById('appScreen').style.display = 'none';
-      renderList(getRecommendedId());
+      if (map) setTimeout(function(){ map.invalidateSize(); }, 150);
+      renderNearestThree();
+      renderList(userLat ? (getTopNearest(1)[0] && getTopNearest(1)[0].id) : null);
     }
     function showApp() {
       document.getElementById('selectionScreen').style.display = 'none';
