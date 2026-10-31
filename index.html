@@ -15,7 +15,7 @@
   <title>Msze Święte – Dekanat Dobczyce</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -333,7 +333,34 @@
     // ========== SUPABASE ==========
     const SUPABASE_URL = 'https://rjcbrmmpwfgewpbidjdi.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqY2JybW1wd2ZnZXdwYmlkamRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0Nzk4NzAsImV4cCI6MjEwOTA1NTg3MH0.7foyJWJpyiNx-mHtf8yG5xHOF-kz1sfG5b7erFlw7hQ';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    let supabase = null;
+    function initSupabase() {
+      try {
+        const lib = window.supabase;
+        if (!lib || typeof lib.createClient !== 'function') {
+          throw new Error('Biblioteka Supabase nie załadowała się (CDN)');
+        }
+        supabase = lib.createClient(SUPABASE_URL, SUPABASE_ANON);
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    }
+
+    // Fallback: bezpośredni fetch bez biblioteki
+    async function fetchParishesRaw() {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/parishes?select=*&is_active=eq.true&order=short_name', {
+        headers: {
+          'apikey': SUPABASE_ANON,
+          'Authorization': 'Bearer ' + SUPABASE_ANON,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }
 
     let CHURCHES = {};
     let currentChurch = null;
@@ -423,47 +450,63 @@
     }
 
     // ========== LOAD FROM SUPABASE ==========
+    function mapRow(row) {
+      return {
+        id: row.id,
+        name: row.name,
+        short: row.short_name,
+        place: row.place,
+        address: row.address,
+        lat: row.lat,
+        lng: row.lng,
+        phone: row.phone,
+        website: row.website,
+        deanery: row.deanery,
+        mapEmbed: row.map_embed,
+        mapLink: row.map_link,
+        sunday_times: row.sunday_times || [],
+        weekday_times: row.weekday_times || [],
+        seasonal_rules: row.seasonal_rules || {},
+        note: row.note,
+        confidence: row.confidence
+      };
+    }
+
     async function loadParishes() {
       const status = document.getElementById('locText');
+      const listEl = document.getElementById('churchList');
       try {
-        const { data, error } = await supabase
-          .from('parishes')
-          .select('*')
-          .eq('is_active', true)
-          .order('short_name');
-        if (error) throw error;
+        let data = null;
+
+        // 1) spróbuj oficjalnego klienta
+        if (initSupabase() && supabase) {
+          const res = await supabase
+            .from('parishes')
+            .select('*')
+            .eq('is_active', true)
+            .order('short_name');
+          if (res.error) throw res.error;
+          data = res.data;
+        } else {
+          // 2) fallback – zwykły fetch
+          data = await fetchParishesRaw();
+        }
+
         if (!data || data.length === 0) {
-          status.textContent = 'Brak parafii w bazie – uruchom SQL setup.';
-          document.getElementById('churchList').innerHTML = '<div class="no-results">Baza jest pusta. Wklej plik supabase-setup.sql w SQL Editor.</div>';
+          status.textContent = 'Brak parafii w bazie';
+          listEl.innerHTML = '<div class="no-results">Baza jest pusta. Uruchom supabase-setup.sql w SQL Editor.</div>';
           return false;
         }
+
         CHURCHES = {};
-        data.forEach(row => {
-          CHURCHES[row.id] = {
-            id: row.id,
-            name: row.name,
-            short: row.short_name,
-            place: row.place,
-            address: row.address,
-            lat: row.lat,
-            lng: row.lng,
-            phone: row.phone,
-            website: row.website,
-            deanery: row.deanery,
-            mapEmbed: row.map_embed,
-            mapLink: row.map_link,
-            sunday_times: row.sunday_times || [],
-            weekday_times: row.weekday_times || [],
-            seasonal_rules: row.seasonal_rules || {},
-            note: row.note,
-            confidence: row.confidence
-          };
-        });
+        data.forEach(row => { CHURCHES[row.id] = mapRow(row); });
+        status.textContent = 'Załadowano ' + data.length + ' parafii. Ustalanie lokalizacji…';
         return true;
       } catch (e) {
-        console.error(e);
+        console.error('loadParishes error:', e);
         status.textContent = 'Błąd połączenia z bazą';
-        document.getElementById('churchList').innerHTML = '<div class="no-results">Nie udało się pobrać danych. Sprawdź czy uruchomiłeś SQL w Supabase.</div>';
+        listEl.innerHTML = '<div class="no-results">Błąd: ' + (e.message || e) +
+          '<br><br>Sprawdź konsolę przeglądarki (F12) i czy SQL został uruchomiony.</div>';
         return false;
       }
     }
